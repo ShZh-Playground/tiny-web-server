@@ -1,17 +1,21 @@
-use std::net::{TcpListener, TcpStream, Shutdown};
-use std::io::prelude::*;
+mod threadpool;
+
 use std::fs::File;
+use std::io::prelude::*;
+use std::net::{Shutdown, TcpListener, TcpStream};
+
+use threadpool::ThreadPool;
 
 fn handle_stream(mut stream: TcpStream) {
     let mut request_buffer = [0; 512];
     stream.read(&mut request_buffer).unwrap();
 
-    let (resource_location, response_header) = if request_buffer.starts_with(b"GET / HTTP/1.1\r\n") {
+    let (resource_location, response_header) = if request_buffer.starts_with(b"GET / HTTP/1.1\r\n")
+    {
         ("./resource/hello.html", "HTTP/1.1 200 OK\r\n\r\n")
     } else {
         ("./resource/404.html", "HTTP/1.1 404 NOT FOUND\r\n\r\n")
     };
-    
     let mut html_template = File::open(resource_location).unwrap();
     let mut content = String::new();
     html_template.read_to_string(&mut content).unwrap();
@@ -25,8 +29,9 @@ fn handle_stream(mut stream: TcpStream) {
 
 fn main() {
     let listener = TcpListener::bind("localhost:8080").unwrap();
+    let thread_pool = ThreadPool::new(4);
 
     for stream in listener.incoming() {
-        handle_stream(stream.unwrap());
+        thread_pool.execute(move || handle_stream(stream.unwrap()));
     }
 }
