@@ -1,4 +1,4 @@
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::prelude::*;
 use std::fs::File;
 
@@ -10,11 +10,12 @@ fn handle_stream(mut stream: TcpStream) {
     let mut content = String::new();
     html_template.read_to_string(&mut content).unwrap();
 
-    let response = format!("HTTP/1.1 200 OK\r\n\r\n{}\r\n", content);
+    let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", content);
     println!("{}", response);
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
+    stream.shutdown(Shutdown::Both).unwrap();
 }
 
 fn main() {
